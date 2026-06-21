@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>24小时时钟</title>
+    <!-- 使用 Tailwind 轻量布局，核心样式自定义 -->
+    <script src="https://cdn.tailwindcss.com">
+    </script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        mono: ['Inter', 'system-ui', 'sans-serif'],
+                    },
+                }
+            }
+        }
+    </script>
+    <style>
+        /* 极简重置，无边框无阴影 */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-size: 80px;
+        }
+
+        body {
+            background: #f1f5f9;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+        }
+
+        .clock-container {
+            background: transparent;
+            /* 完全无边框、无背景块、无阴影 */
+            padding: 1rem;
+            text-align: center;
+        }
+
+        .time-display {
+            font-size: clamp(4rem, 16vw, 9rem);
+            font-weight: 600;
+            font-variant-numeric: tabular-nums;
+            letter-spacing: 0.04em;
+            color: #0f172a;
+            line-height: 1.2;
+            /* 24小时制时分秒，无任何多余装饰 */
+        }
+
+        /* 秒数稍微淡化，突出时分，但依然保留 */
+        .time-display span {
+            display: inline-block;
+        }
+
+        /* 冒号微调 */
+        .colon {
+            color: #3B82F6;
+            font-weight: 300;
+            margin: 0 0.05em;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="clock-container">
+        <div class="time-display" id="time">--:--:--</div>
+    </div>
+
+    <script>
+        (function() {
+            'use strict';
+
+            const timeEl = document.getElementById('time');
+
+            function pad(n) {
+                return n.toString().padStart(2, '0');
+            }
+
+            function updateClock() {
+                const now = new Date();
+
+                // 24小时制
+                const hh = now.getHours();
+                const mm = now.getMinutes();
+                const ss = now.getSeconds();
+
+                // 直接拼接为 HH:MM:SS
+                timeEl.textContent = pad(hh) + ':' + pad(mm) + ':' + pad(ss);
+            }
+
+            // 立即执行，每秒更新
+            updateClock();
+            setInterval(updateClock, 1000);
+        })();
+    </script>
+
+</body>
+</html>

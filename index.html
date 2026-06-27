@@ -4,7 +4,6 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>24小时时钟</title>
-    <!-- 使用 Tailwind 轻量布局，核心样式自定义 -->
     <script src="https://cdn.tailwindcss.com">
     </script>
     <script>
@@ -19,12 +18,11 @@
         }
     </script>
     <style>
-        /* 极简重置，无边框无阴影 */
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
-            font-size: 80px;
+            /* 移除原有的固定 500% 字体大小，改为由 JavaScript 动态控制 */
         }
 
         body {
@@ -38,27 +36,25 @@
 
         .clock-container {
             background: transparent;
-            /* 完全无边框、无背景块、无阴影 */
             padding: 1rem;
             text-align: center;
         }
 
         .time-display {
-            font-size: clamp(4rem, 16vw, 9rem);
             font-weight: 600;
             font-variant-numeric: tabular-nums;
             letter-spacing: 0.04em;
             color: #0f172a;
             line-height: 1.2;
-            /* 24小时制时分秒，无任何多余装饰 */
+            /* 字体大小通过 JS 动态设置，实现比例缩放 */
+            white-space: nowrap;
         }
 
-        /* 秒数稍微淡化，突出时分，但依然保留 */
         .time-display span {
             display: inline-block;
         }
 
-        /* 冒号微调 */
+        /* 冒号样式保留 */
         .colon {
             color: #3B82F6;
             font-weight: 300;
@@ -77,6 +73,10 @@
             'use strict';
 
             const timeEl = document.getElementById('time');
+            // 基准值：全屏时目标字体大小 80px
+            const BASE_FONT_SIZE = 400;
+            // 获取屏幕宽度作为全屏参考（CSS 像素）
+            const FULLSCREEN_WIDTH = screen.width;
 
             function pad(n) {
                 return n.toString().padStart(2, '0');
@@ -84,19 +84,31 @@
 
             function updateClock() {
                 const now = new Date();
-
-                // 24小时制
                 const hh = now.getHours();
                 const mm = now.getMinutes();
                 const ss = now.getSeconds();
-
-                // 直接拼接为 HH:MM:SS
                 timeEl.textContent = pad(hh) + ':' + pad(mm) + ':' + pad(ss);
             }
 
-            // 立即执行，每秒更新
+            function resizeFont() {
+                // 计算当前窗口宽度与全屏宽度的比例
+                const scale = window.innerWidth / FULLSCREEN_WIDTH;
+                // 按比例缩放字体大小，并设置到元素上
+                const newSize = BASE_FONT_SIZE * scale;
+                timeEl.style.fontSize = newSize + 'px';
+            }
+
+            // 初始化字体大小
+            resizeFont();
+            // 监听窗口大小变化，实时调整
+            window.addEventListener('resize', resizeFont);
+
+            // 时钟更新
             updateClock();
             setInterval(updateClock, 1000);
+
+            // 如果屏幕分辨率发生变化（如外接显示器），可以尝试重新获取，但这需要额外处理。
+            // 此处假设全屏宽度不变，如有需要可监听屏幕变化事件，但较为罕见。
         })();
     </script>
 

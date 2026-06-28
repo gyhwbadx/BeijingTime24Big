@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0, user-scalable=no" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="theme-color" content="#f1f5f9" />
+    <title>24小时时钟</title>
+    <script src="https://cdn.tailwindcss.com">
+    </script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        mono: ['Inter', 'system-ui', 'sans-serif'],
+                    },
+                }
+            }
+        }
+    </script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html {
+            height: 100%;
+            width: 100%;
+            overflow: hidden;
+        }
+
+        body {
+            background: #f1f5f9;
+            min-height: 100vh;
+            min-height: 100dvh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+            overflow: hidden;
+            padding: env(safe-area-inset-top, 0px) env(safe-area-inset-right, 0px) env(safe-area-inset-bottom, 0px) env(safe-area-inset-left, 0px);
+            -webkit-tap-highlight-color: transparent;
+            -webkit-user-select: none;
+            user-select: none;
+            touch-action: manipulation;
+        }
+
+        .clock-container {
+            background: transparent;
+            padding: 1rem;
+            text-align: center;
+            max-width: 100vw;
+            max-width: 100dvw;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .time-display {
+            font-weight: 600;
+            font-variant-numeric: tabular-nums;
+            letter-spacing: 0.04em;
+            color: #0f172a;
+            line-height: 1.2;
+            white-space: nowrap;
+            display: inline-block;
+            font-size: 48px;
+            transition: font-size 0.08s ease-out;
+        }
+
+        .time-display.measuring {
+            transition: none !important;
+        }
+
+        /* 冒号样式恢复为与数字完全统一 */
+        .time-display .colon {
+            color: inherit;
+            font-weight: inherit;
+            margin: 0 0.04em;
+            position: relative;
+            top: -0.02em;
+        }
+
+        .time-display .digit-group {
+            display: inline;
+        }
+
+        @media screen and (max-width: 320px) {
+            .time-display {
+                letter-spacing: 0.02em;
+            }
+            .time-display .colon {
+                margin: 0 0.02em;
+            }
+        }
+
+        @media screen and (max-height: 500px) and (orientation: landscape) {
+            .clock-container {
+                padding: 0.25rem;
+            }
+            .time-display {
+                line-height: 1;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="clock-container">
+        <div class="time-display" id="time">--:--:--</div>
+    </div>
+
+    <script>
+        (function() {
+            'use strict';
+
+            const timeEl = document.getElementById('time');
+            const container = timeEl.parentElement;
+
+            const BASE_FONT_SIZE = 400;
+            const FULLSCREEN_WIDTH = screen.width;
+
+            function pad(n) {
+                return n.toString().padStart(2, '0');
+            }
+
+            function updateClock() {
+                const now = new Date();
+                const hh = pad(now.getHours());
+                const mm = pad(now.getMinutes());
+                const ss = pad(now.getSeconds());
+
+                timeEl.innerHTML =
+                    '<span class="digit-group">' + hh + '</span>' +
+                    '<span class="colon">:</span>' +
+                    '<span class="digit-group">' + mm + '</span>' +
+                    '<span class="colon">:</span>' +
+                    '<span class="digit-group">' + ss + '</span>';
+
+                scheduleOverflowCheck();
+            }
+
+            function getAvailableWidth() {
+                const containerStyle = window.getComputedStyle(container);
+                const paddingLeft = parseFloat(containerStyle.paddingLeft) || 0;
+                const paddingRight = parseFloat(containerStyle.paddingRight) || 0;
+                return container.clientWidth - paddingLeft - paddingRight;
+            }
+
+            let overflowCheckPending = false;
+
+            function scheduleOverflowCheck() {
+                if (overflowCheckPending) return;
+                overflowCheckPending = true;
+                requestAnimationFrame(() => {
+                    overflowCheckPending = false;
+                    const availableWidth = getAvailableWidth();
+                    if (availableWidth <= 0) return;
+                    if (timeEl.scrollWidth > availableWidth) {
+                        resizeFont();
+                    }
+                });
+            }
+
+            function resizeFont() {
+                timeEl.classList.add('measuring');
+
+                const viewportWidth = window.innerWidth ;
+                const scale = viewportWidth / FULLSCREEN_WIDTH;
+                let targetSize = BASE_FONT_SIZE * scale;
+
+                timeEl.style.fontSize = targetSize + 'px';
+
+                let availableWidth = getAvailableWidth();
+                if (availableWidth <= 0) {
+                    timeEl.classList.remove('measuring');
+                    return;
+                }
+
+                const MAX_ITERATIONS = 5;
+                const SAFETY_FACTOR = 1.04;
+
+                for (let i = 0; i < MAX_ITERATIONS; i++) {
+                    const contentWidth = timeEl.scrollWidth;
+
+                    if (contentWidth <= availableWidth) {
+                        break;
+                    }
+
+                    const ratio = (availableWidth / contentWidth) * SAFETY_FACTOR;
+                    targetSize = targetSize * ratio;
+                    timeEl.style.fontSize = targetSize + 'px';
+
+                    availableWidth = getAvailableWidth();
+                    if (availableWidth <= 0) break;
+                }
+
+                timeEl.classList.remove('measuring');
+            }
+
+            function setupVisualViewportListener() {
+                if (window.visualViewport && typeof window.visualViewport.addEventListener === 'function') {
+                    window.visualViewport.addEventListener('resize', function() {
+                        if (!resizeFont._pending) {
+                            resizeFont._pending = true;
+                            requestAnimationFrame(function() {
+                                resizeFont();
+                                resizeFont._pending = false;
+                            });
+                        }
+                    });
+                }
+            }
+
+            function setupVisibilityListener() {
+                document.addEventListener('visibilitychange', function() {
+                    if (document.visibilityState === 'visible') {
+                        updateClock();
+                        resizeFont();
+                    }
+                });
+            }
+
+            function setupOrientationListener() {
+                window.addEventListener('orientationchange', function() {
+                    setTimeout(function() {
+                        resizeFont();
+                        updateClock();
+                    }, 150);
+                });
+            }
+
+            resizeFont();
+            updateClock();
+            setInterval(updateClock, 1000);
+
+            window.addEventListener('resize', function() {
+                if (!resizeFont._pending) {
+                    resizeFont._pending = true;
+                    requestAnimationFrame(function() {
+                        resizeFont();
+                        resizeFont._pending = false;
+                    });
+                }
+            });
+
+            setupVisualViewportListener();
+            setupVisibilityListener();
+            setupOrientationListener();
+
+            console.log(
+                '⏰ 24小时时钟已就绪 | 屏幕宽度:' + FULLSCREEN_WIDTH +
+                'px | 基准字体:' + BASE_FONT_SIZE +
+                'px | 当前窗口:' + window.innerWidth + 'px'
+            );
+        })();
+    </script>
+
+</body>
+</html>
